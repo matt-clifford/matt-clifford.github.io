@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<body>
+<main role="main" class="container">
+<h1 align="left">webrtc_sender v.0.1.0</h1>
+<p>This test derived from:</p>
+<p>  https://sensor-js.xyz/demo.html</p>
+<p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
+<p>  https://peerjs.com/</p>
+
+<canvas id="c"></canvas>
+
+<style>
+#c {
+  width: 500px;
+  height: 300px;
+}
+</style>
+ 
+<p></p>
+<p></p>
+ 
+ <a id="start_demo" class="btn btn-lg btn-success py-1" href="#" role="button">Start the demo</a>
+<p style="margin-top:1rem;">Num. of datapoints: <span class="badge badge-warning" id="num-observed-events">0</span></p>
+<p style="margin-top:1rem;">Timer Ticks: <span class="badge badge-warning" id="timer_ticks">0</span></p>
+
+<h4 style="margin-top:0.75rem;">Orientation</h4>
+<ul>
+  <li>X-axis (&beta;): <span id="Orientation_b">0</span><span>&deg;</span></li>
+  <li>Y-axis (&gamma;): <span id="Orientation_g">0</span><span>&deg;</span></li>
+  <li>Z-axis (&alpha;): <span id="Orientation_a">0</span><span>&deg;</span></li>
+  <li>X-axis(rads) (&beta;): <span id="Orientation_b_rad">0</span></li>
+  <li>Y-axis(rads) (&gamma;): <span id="Orientation_g_rad">0</span></li>
+  <li>Z-axis(rads) (&alpha;): <span id="Orientation_a_rad">0</span></li>
+</ul>
+
+<h4>Accelerometer</h4>
+<ul>
+  <li>X-axis: <span id="Accelerometer_x">0</span><span> m/s<sup>2</sup></span></li>
+  <li>Y-axis: <span id="Accelerometer_y">0</span><span> m/s<sup>2</sup></span></li>
+  <li>Z-axis: <span id="Accelerometer_z">0</span><span> m/s<sup>2</sup></span></li>
+  <li>Data Interval: <span id="Accelerometer_i">0</span><span> ms</span></li>
+</ul>
+
+<h4>Accelerometer including gravity</h4>
+
+<ul>
+  <li>X-axis: <span id="Accelerometer_gx">0</span><span> m/s<sup>2</sup></span></li>
+  <li>Y-axis: <span id="Accelerometer_gy">0</span><span> m/s<sup>2</sup></span></li>
+  <li>Z-axis: <span id="Accelerometer_gz">0</span><span> m/s<sup>2</sup></span></li>
+</ul>
+
+<h4>Gyroscope</h4>
+<ul>
+  <li>X-axis: <span id="Gyroscope_x">0</span><span>&deg;/s</span></li>
+  <li>Y-axis: <span id="Gyroscope_y">0</span><span>&deg;/s</span></li>
+  <li>Z-axis: <span id="Gyroscope_z">0</span><span>&deg;/s</span></li>
+</ul>
+
+ 
+<script type="importmap">{
+ "imports": {
+ "three": "https://threejs.org/build/three.module.js",
+ "mqtt": "https://unpkg.com/mqtt/dist/mqtt.esm.js"
+ }
+}</script>
+
+  
+<script type="module">
+import * as THREE from 'three';
+import {Peer} from "https://esm.sh/peerjs@1.5.5?bundle-deps"
+
+var peer = new Peer();
+var conn = peer.connect('another-peers-id');
+
+  
+function main() {
+  const canvas = document.querySelector('#c');
+  const renderer = new THREE.WebGLRenderer({antialias: true, canvas});
+
+  const fov = 105;
+  const aspect = 2;
+  const near = 0.5;
+  const far = 5;
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.z = 2;
+
+  const scene = new THREE.Scene();
+  const boxWidth = 1;
+  const boxHeight = 1;
+  const boxDepth = 1;
+  const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+  const material = new THREE.MeshBasicMaterial({color: 0XFFC0CB})
+  const cube = new THREE.Mesh(geometry, material);
+  scene.add(cube);
+
+  let isDragging = false;
+  let previousMousePosition = { x: 0, y: 0 };
+  const mousePosition = { x: 0, y: 0 };
+
+function degToRad(degrees) {
+  return degrees * (Math.PI / 180);
+}
+  
+function onPointerDown(event) {
+  isDragging = true;
+  previousMousePosition = {
+    x: event.clientX,
+    y: event.clientY
+};
+}
+
+  function onPointerMove(event) {
+    if (isDragging) {
+      mousePosition.x = event.clientX;
+      mousePosition.y = event.clientY;
+
+      const deltaX = mousePosition.x - previousMousePosition.x;
+      const deltaY = mousePosition.y - previousMousePosition.y;
+
+      cube.rotation.y += deltaX * 0.01;
+      cube.rotation.x += deltaY * 0.01;
+
+      previousMousePosition = {
+        x: mousePosition.x,
+        y: mousePosition.y
+      };
+    }
+  }
+
+  function onPointerUp() {
+    isDragging = false;
+  }
+  
+ function updateFromSensors() {
+     // Get the orientation
+     let x_axis_str = document.getElementById("Orientation_b").innerHTML;  
+     let y_axis_str = document.getElementById("Orientation_g").innerHTML;  
+     let z_axis_str = document.getElementById("Orientation_a").innerHTML;  
+     
+     let x_axis_rad = degToRad(parseInt(x_axis_str));
+     let y_axis_rad = degToRad(parseInt(y_axis_str));
+     let z_axis_rad = degToRad(parseInt(z_axis_str));
+
+      updateFieldIfNotNull('Orientation_a_rad', x_axis_rad);
+      updateFieldIfNotNull('Orientation_b_rad', y_axis_rad);
+      updateFieldIfNotNull('Orientation_g_rad', z_axis_rad);
+   
+     // Euler angles in radians
+     cube.rotation.x = -x_axis_rad;
+     cube.rotation.y = -y_axis_rad;
+     //exclude z axis as it was excluded in the demo  
+     cube.rotation.z = -z_axis_rad
+ }
+
+  canvas.addEventListener('mousedown', onPointerDown);
+  canvas.addEventListener('mousemove', onPointerMove);
+  canvas.addEventListener('mouseup', onPointerUp);
+
+function render() {
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+
+
+
+let b_running = Boolean(true);
+let frame_timeout_ms = 50;  // 50ms = 20Hz, 10ms = 100Hz
+let t_timeout
+let lastTime = Date.now();
+
+const tick = () => {
+  const now = Date.now();
+  const delta = now - lastTime;
+  lastTime = now;
+
+  // Now do something with delta, which contains the number of milliseconds since this function was last called.
+  // Could use this to smooth out the framerate
+  let counterElement = document.getElementById("timer_ticks")
+  let eventCount = parseInt(counterElement.innerHTML)
+  counterElement.innerHTML = eventCount + 1;
+
+  // get the current orientation
+  let x_axis_str = document.getElementById("Orientation_b").innerHTML;  
+  let y_axis_str = document.getElementById("Orientation_g").innerHTML;  
+  let z_axis_str = document.getElementById("Orientation_a").innerHTML; 
+  // Serialise as a JSON string
+  const data = { x: x_axis_str, y: y_axis_str, z: z_axis_str };
+  const jsonString = JSON.stringify(data);
+  // Post to webrtc
+  conn.send(jsonString);
+  
+  // or setTimeout() for fixed FPS
+  t_timeout = setTimeout(tick, frame_timeout_ms);
+};
+
+function StopTimeout() {
+  clearTimeout(t_timeout);
+}
+
+function handleOrientation(event) {
+  updateFieldIfNotNull('Orientation_a', event.alpha);
+  updateFieldIfNotNull('Orientation_b', event.beta);
+  updateFieldIfNotNull('Orientation_g', event.gamma);
+  //updateFromSensors();
+  incrementEventCount();
+}
+
+function incrementEventCount(){
+  let counterElement = document.getElementById("num-observed-events")
+  let eventCount = parseInt(counterElement.innerHTML)
+  counterElement.innerHTML = eventCount + 1;
+}
+
+function updateFieldIfNotNull(fieldName, value, precision=2){
+  if (value != null)
+    document.getElementById(fieldName).innerHTML = value.toFixed(precision);
+}
+
+function handleMotion(event) {
+  updateFieldIfNotNull('Accelerometer_gx', event.accelerationIncludingGravity.x);
+  updateFieldIfNotNull('Accelerometer_gy', event.accelerationIncludingGravity.y);
+  updateFieldIfNotNull('Accelerometer_gz', event.accelerationIncludingGravity.z);
+
+  updateFieldIfNotNull('Accelerometer_x', event.acceleration.x);
+  updateFieldIfNotNull('Accelerometer_y', event.acceleration.y);
+  updateFieldIfNotNull('Accelerometer_z', event.acceleration.z);
+
+  updateFieldIfNotNull('Accelerometer_i', event.interval, 2);
+
+  updateFieldIfNotNull('Gyroscope_z', event.rotationRate.alpha);
+  updateFieldIfNotNull('Gyroscope_x', event.rotationRate.beta);
+  updateFieldIfNotNull('Gyroscope_y', event.rotationRate.gamma);
+  incrementEventCount();
+}
+
+let b_is_running = Boolean(false);
+let demo_button = document.getElementById("start_demo");
+demo_button.onclick = function(e) {
+  e.preventDefault();
+  
+  // Request permission for iOS 13+ devices
+  if (
+    DeviceMotionEvent &&
+    typeof DeviceMotionEvent.requestPermission === "function"
+  ) {
+    DeviceMotionEvent.requestPermission();
+  }
+  
+  if (b_is_running){
+    StopTimeout();
+    window.removeEventListener("devicemotion", handleMotion);
+    window.removeEventListener("deviceorientation", handleOrientation);
+    demo_button.innerHTML = "Start demo";
+    demo_button.classList.add('btn-success');
+    demo_button.classList.remove('btn-danger');
+    b_is_running = false;
+  }else{
+    tick(); // initial call to kick things off 
+    window.addEventListener("devicemotion", handleMotion);
+    window.addEventListener("deviceorientation", handleOrientation);
+    document.getElementById("start_demo").innerHTML = "Stop demo";
+    demo_button.classList.remove('btn-success');
+    demo_button.classList.add('btn-danger');
+    b_is_running = true;
+  }
+};
+  
+  // Receive messages
+peer.on('message', function (conn) {
+  conn.on('data', function(data){
+    const orientation = JSON.parse(data);
+
+    let x_axis_rad = degToRad(parseInt(data.x));
+    let y_axis_rad = degToRad(parseInt(data.y));
+    let z_axis_rad = degToRad(parseInt(data.z));
+    
+    updateFieldIfNotNull('Orientation_a_rad', x_axis_rad);
+    updateFieldIfNotNull('Orientation_b_rad', y_axis_rad);
+    updateFieldIfNotNull('Orientation_g_rad', z_axis_rad);
+   
+    // Euler angles in radians
+    cube.rotation.x = -x_axis_rad;
+    cube.rotation.y = -y_axis_rad;
+    //exclude z axis as it was excluded in the demo  
+    cube.rotation.z = -z_axis_rad      
+  });
+});
+   
+/*
+Light and proximity are not supported anymore by mainstream browsers.
+window.addEventListener('devicelight', function(e) {
+   document.getElementById("DeviceLight").innerHTML="AmbientLight current Value: "+e.value+" Max: "+e.max+" Min: "+e.min;
+});
+
+window.addEventListener('lightlevel', function(e) {
+   document.getElementById("Lightlevel").innerHTML="Light level: "+e.value;
+});
+
+window.addEventListener('deviceproximity', function(e) {
+   document.getElementById("DeviceProximity").innerHTML="DeviceProximity current Value: "+e.value+" Max: "+e.max+" Min: "+e.min;
+});
+
+window.addEventListener('userproximity', function(event) {
+   document.getElementById("UserProximity").innerHTML="UserProximity: "+event.near;
+});
+*/
+  requestAnimationFrame(render);
+} // end main???
+
+  
+// Run the cube animation
+main();  
+
+</script>
+</body>
+</html>
+
