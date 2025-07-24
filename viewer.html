@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">listener  - v0.1.0</h1>
+<h1 align="left">listener  - v0.1.1</h1>
 <p>This test derived from:</p>
 <p>  ...</p>
 
@@ -60,7 +60,7 @@ function main() {
   const boxDepth = 1;
   const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 
-  const material = new THREE.MeshBasicMaterial({color: 0XFFC0CB})
+  const material = new THREE.MeshBasicMaterial({color: 0xffffff, wireframe: true})
   const cube = new THREE.Mesh(geometry, material);
   scene.add(cube);
 
