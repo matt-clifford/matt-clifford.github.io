@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<body>
+<main role="main" class="container">
+<h1 align="left">listener  - v0.1.0</h1>
+<p>This test derived from:</p>
+<p>  ...</p>
+
+<canvas id="c"></canvas>
+
+<style>
+#c {
+  width: 500px;
+  height: 300px;
+}
+</style>
+ 
+<p></p>
+<p></p>
+ 
+ <a id="start_demo" class="btn btn-lg btn-success py-1" href="#" role="button">Start the demo</a>
+<p style="margin-top:1rem;">Num. of datapoints: <span class="badge badge-warning" id="num-observed-events">0</span></p>
+<p style="margin-top:1rem;">Timer Ticks: <span class="badge badge-warning" id="timer_ticks">0</span></p>
+
+<h4 style="margin-top:0.75rem;">Orientation</h4>
+<ul>
+  <li>X-axis (&beta;): <span id="Orientation_b">0</span><span>&deg;</span></li>
+  <li>Y-axis (&gamma;): <span id="Orientation_g">0</span><span>&deg;</span></li>
+  <li>Z-axis (&alpha;): <span id="Orientation_a">0</span><span>&deg;</span></li>
+  <li>X-axis(rads) (&beta;): <span id="Orientation_b_rad">0</span></li>
+  <li>Y-axis(rads) (&gamma;): <span id="Orientation_g_rad">0</span></li>
+  <li>Z-axis(rads) (&alpha;): <span id="Orientation_a_rad">0</span></li>
+</ul>
+ 
+<script type="importmap">{
+ "imports": {
+ "three": "https://threejs.org/build/three.module.js",
+ "mqtt": "https://unpkg.com/mqtt/dist/mqtt.esm.js"
+ }
+}</script>
+  
+<script type="module">
+import * as THREE from 'three';
+import mqtt from "mqtt";
+  
+function main() {
+  const canvas = document.querySelector('#c');
+  const renderer = new THREE.WebGLRenderer({antialias: true, canvas});
+
+  const fov = 105;
+  const aspect = 2;
+  const near = 0.5;
+  const far = 5;
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.z = 2;
+
+  const scene = new THREE.Scene();
+  const boxWidth = 1;
+  const boxHeight = 1;
+  const boxDepth = 1;
+  const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+  const material = new THREE.MeshBasicMaterial({color: 0XFFC0CB})
+  const cube = new THREE.Mesh(geometry, material);
+  scene.add(cube);
+
+  let isDragging = false;
+  let previousMousePosition = { x: 0, y: 0 };
+  const mousePosition = { x: 0, y: 0 };
+
+function degToRad(degrees) {
+  return degrees * (Math.PI / 180);
+}
+ 
+function render() {
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+
+
+
+let b_running = Boolean(true);
+let frame_timeout_ms = 50;  // 50ms = 20Hz, 10ms = 100Hz
+let t_timeout
+let lastTime = Date.now();
+
+function handleOrientation(event) {
+  updateFieldIfNotNull('Orientation_a', event.alpha);
+  updateFieldIfNotNull('Orientation_b', event.beta);
+  updateFieldIfNotNull('Orientation_g', event.gamma);
+  incrementEventCount();
+}
+
+function incrementEventCount(){
+  let counterElement = document.getElementById("num-observed-events")
+  let eventCount = parseInt(counterElement.innerHTML)
+  counterElement.innerHTML = eventCount + 1;
+}
+
+function updateFieldIfNotNull(fieldName, value, precision=2){
+  if (value != null)
+    document.getElementById(fieldName).innerHTML = value.toFixed(precision);
+}
+
+let b_is_running = Boolean(false);
+let demo_button = document.getElementById("start_demo");
+demo_button.onclick = function(e) {
+  e.preventDefault();
+  
+  // Request permission for iOS 13+ devices
+  if (
+    DeviceMotionEvent &&
+    typeof DeviceMotionEvent.requestPermission === "function"
+  ) {
+    DeviceMotionEvent.requestPermission();
+  }
+  
+  if (b_is_running){
+    window.removeEventListener("deviceorientation", handleOrientation);
+    demo_button.innerHTML = "Start demo";
+    demo_button.classList.add('btn-success');
+    demo_button.classList.remove('btn-danger');
+    b_is_running = false;
+  }else{
+    window.addEventListener("deviceorientation", handleOrientation);
+    document.getElementById("start_demo").innerHTML = "Stop demo";
+    demo_button.classList.remove('btn-success');
+    demo_button.classList.add('btn-danger');
+    b_is_running = true;
+  }
+};
+  
+let client = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+username: 'emqx_test',
+password: 'emqx_test'
+});
+
+client.on('connect', function () {
+  console.log('Connected')
+  // Subscribe to a topic
+  client.subscribe('orientation_test', function (err) {
+    if (!err) {
+      // Publish a message to a topic
+      //client.publish('orientation_test', 'Hello mqtt')
+    }
+  })
+})
+
+  // Receive messages
+client.on('message', function (topic, message) {
+  // message is Buffer
+  //console.log(message.toString())
+  //client.end()
+  const data = JSON.parse(message.toString());
+
+  let x_axis_rad = degToRad(parseInt(data.x));
+  let y_axis_rad = degToRad(parseInt(data.y));
+  let z_axis_rad = degToRad(parseInt(data.z));
+  
+  updateFieldIfNotNull('Orientation_a_rad', x_axis_rad);
+  updateFieldIfNotNull('Orientation_b_rad', y_axis_rad);
+  updateFieldIfNotNull('Orientation_g_rad', z_axis_rad);
+ 
+  // Euler angles in radians
+  cube.rotation.x = -x_axis_rad;
+  cube.rotation.y = -y_axis_rad;
+  //exclude z axis as it was excluded in the demo  
+  cube.rotation.z = -z_axis_rad  
+  
+})
+  
+  requestAnimationFrame(render);
+} // end main???
+
+  
+// Run the cube animation
+main();  
+
+</script>
+</body>
+</html>
+
