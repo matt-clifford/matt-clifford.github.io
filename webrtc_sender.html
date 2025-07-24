@@ -91,7 +91,7 @@ function main() {
   const boxDepth = 1;
   const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 
-  const material = new THREE.MeshBasicMaterial({color: 0XFFC0CB})
+  const material = new THREE.MeshBasicMaterial({color: 0XFFFFFF, wireframe: true}})
   const cube = new THREE.Mesh(geometry, material);
   scene.add(cube);
 
