@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">webrtc_viewer v.0.1.0</h1>
+<h1 align="left">webrtc_viewer v.0.1.1</h1>
 <p>This test derived from:</p>
 <p>  https://sensor-js.xyz/demo.html</p>
 <p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
@@ -47,10 +47,14 @@
 import * as THREE from 'three';
 import {Peer} from "https://esm.sh/peerjs@1.5.5?bundle-deps"
 
-var peer = new Peer();
+var peer = new Peer('long_random_peer_id_for_orientation');
 peer.on('open', function(id) {
 	console.log('My peer ID is: ' + id);
 });
+
+peer.on('error', function(err) { 
+  console.log('Peer Error: ' + err.type);
+});	
 
   
 function main() {
@@ -134,9 +138,15 @@ demo_button.onclick = function(e) {
     b_is_running = true;
   }
 };
-  
+
+const messages_rxd = 0;
   // Receive messages
 peer.on('message', function (conn) {
+  messages_rxd += 1;
+  if ((messages_rxd % 100) == 0){
+	  console.log('Peer Rxd 100 messages');
+  }
+	
   conn.on('data', function(data){
     const orientation = JSON.parse(data);
 
