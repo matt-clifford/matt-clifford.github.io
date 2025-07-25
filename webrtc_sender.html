@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">webrtc_sender v.0.1.5</h1>
+<h1 align="left">webrtc_sender v.0.1.6</h1>
 <p>This test derived from:</p>
 <p>  https://sensor-js.xyz/demo.html</p>
 <p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
@@ -124,14 +124,14 @@ function initialize() {
 
     peer.on('open', function (id) {
 	// Workaround for peer.reconnect deleting previous id
-	if (peer.id === null) {
+	if ( === null) {
 	    console.log('Peer: Received null id from peer open');
-	    peer.id = lastPeerId;
+	    // = lastPeerId;
 	} else {
-	    lastPeerId = peer.id;
+	    lastPeerId = ;
 	}
 
-	console.log('My Peer ID: ' + peer.id);
+	console.log('My Peer ID: ' + );
     });
     peer.on('connection', function (c) {
 	// Disallow incoming connections
@@ -145,7 +145,7 @@ function initialize() {
 
 	// Workaround for peer.reconnect deleting previous id
 	//peer.id = lastPeerId;
-	peer._lastServerId = lastPeerId;
+	//peer._lastServerId = lastPeerId;
 	peer.reconnect();
     });
     peer.on('close', function() {
