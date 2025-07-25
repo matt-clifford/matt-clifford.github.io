@@ -78,7 +78,16 @@ peer.on('error', function(err) {
   console.log('Peer Error: ' + err.type);
 });
 
-  
+peer.on('connection', function(dataConnection) { 
+	console.log('Peer Connection');
+});
+
+peer.on('open', function(id) {
+  console.log('Peer Open: ' + id);
+  console.log('Starting Timer');
+  tick(); // initial call to kick things off 
+});
+
   
 function main() {
   const canvas = document.querySelector('#c');
