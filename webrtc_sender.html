@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">webrtc_sender v.0.1.2</h1>
+<h1 align="left">webrtc_sender v.0.1.4</h1>
 <p>This test derived from:</p>
 <p>  https://sensor-js.xyz/demo.html</p>
 <p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
@@ -70,10 +70,11 @@
 import * as THREE from 'three';
 import {Peer} from "https://esm.sh/peerjs@1.5.5?bundle-deps"
 
-var peer = new Peer({debug: 2});
-var conn = peer.connect('long_random_peer_id_for_orientation');
+var lastPeerId = null;
+var peer = null; // own peer object
+var conn = null;
 
-
+	
 let b_running = Boolean(true);
 let frame_timeout_ms = 50;  // 50ms = 20Hz, 10ms = 100Hz
 let t_timeout
@@ -108,22 +109,90 @@ const tick = () => {
   // or setTimeout() for fixed FPS
   t_timeout = setTimeout(tick, frame_timeout_ms);
 };
+
+/**
+ * Create the Peer object for our end of the connection.
+ *
+ * Sets up callbacks that handle any events related to our
+ * peer object.
+ */
+function initialize() {
+    // Create own peer object with connection to shared PeerJS server
+    peer = new Peer(null, {
+	debug: 2
+    });
+
+    peer.on('open', function (id) {
+	// Workaround for peer.reconnect deleting previous id
+	if (peer.id === null) {
+	    console.log('Peer: Received null id from peer open');
+	    peer.id = lastPeerId;
+	} else {
+	    lastPeerId = peer.id;
+	}
+
+	console.log('My Peer ID: ' + peer.id);
+    });
+    peer.on('connection', function (c) {
+	// Disallow incoming connections
+	c.on('open', function() {
+	    c.send("Peer: Sender does not accept incoming connections");
+	    setTimeout(function() { c.close(); }, 500);
+	});
+    });
+    peer.on('disconnected', function () {
+	console.log('Peer: Connection lost. Please reconnect');
+
+	// Workaround for peer.reconnect deleting previous id
+	peer.id = lastPeerId;
+	peer._lastServerId = lastPeerId;
+	peer.reconnect();
+    });
+    peer.on('close', function() {
+	conn = null;
+	console.log('Peer: Connection destroyed');
+    });
+    peer.on('error', function (err) {
+	console.log("Peer Error: " + err);
+    });
+};
+
+/**
+ * Create the connection between the two Peers.
+ *
+ * Sets up callbacks that handle any events related to the
+ * connection and data received on it.
+ */
+function join() {
+    // Close old connection
+    if (conn) {
+	console.log("Peer Join: Close existing connection");
+	conn.close();
+    }
+
+    // Create connection to destination peer specified in the input field
+    conn = peer.connect('long_random_peer_id_for_orientation', {
+	reliable: false
+    });
+
+    console.log("Peer connecting to: " + 'long_random_peer_id_for_orientation');
 	
-peer.on('error', function(err) { 
-  console.log('Peer Error: ' + err.type);
-});
+    conn.on('open', function () {
+	console.log("Peer: Connected to: " + conn.peer);
 
-peer.on('connection', function(dataConnection) { 
-	console.log('Peer Connection');
-});
+	// Start timer
+	tick();
+    });
+    // Handle incoming data (messages only since this is the signal sender)
+    conn.on('data', function (data) {
+	console.log("Peer data: " + data);
+    });
+    conn.on('close', function () {
+	console.log("Connection closed");
+    });
+};
 
-peer.on('open', function(id) {
-  console.log('Peer Open: ' + id);
-  console.log('Starting Timer');
-  tick(); // initial call to kick things off 
-});
-
-  
+	
 function main() {
   const canvas = document.querySelector('#c');
   const renderer = new THREE.WebGLRenderer({antialias: true, canvas});
@@ -284,28 +353,7 @@ demo_button.onclick = function(e) {
     b_is_running = true;
   }
 };
-  
-  // Receive messages
-peer.on('message', function (conn) {
-  conn.on('data', function(data){
-    const orientation = JSON.parse(data);
-
-    let x_axis_rad = degToRad(parseInt(data.x));
-    let y_axis_rad = degToRad(parseInt(data.y));
-    let z_axis_rad = degToRad(parseInt(data.z));
-    
-    updateFieldIfNotNull('Orientation_a_rad', x_axis_rad);
-    updateFieldIfNotNull('Orientation_b_rad', y_axis_rad);
-    updateFieldIfNotNull('Orientation_g_rad', z_axis_rad);
-   
-    // Euler angles in radians
-    cube.rotation.x = -x_axis_rad;
-    cube.rotation.y = -y_axis_rad;
-    //exclude z axis as it was excluded in the demo  
-    cube.rotation.z = -z_axis_rad      
-  });
-});
-   
+     
 /*
 Light and proximity are not supported anymore by mainstream browsers.
 window.addEventListener('devicelight', function(e) {
@@ -327,6 +375,8 @@ window.addEventListener('userproximity', function(event) {
   requestAnimationFrame(render);
 } // end main???
 
+initialize();
+join();
   
 // Run the cube animation
 main();  
