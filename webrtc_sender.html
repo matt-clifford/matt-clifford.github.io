@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">webrtc_sender v.0.1.0</h1>
+<h1 align="left">webrtc_sender v.0.1.1</h1>
 <p>This test derived from:</p>
 <p>  https://sensor-js.xyz/demo.html</p>
 <p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
@@ -70,9 +70,15 @@
 import * as THREE from 'three';
 import {Peer} from "https://esm.sh/peerjs@1.5.5?bundle-deps"
 
-var peer = new Peer();
-var conn = peer.connect('4f408ade-dea8-4593-a7db-3cab567c815e');
+var peer = new Peer({debug: 2});
+var conn = peer.connect('long_random_peer_id_for_orientation');
 
+
+peer.on('error', function(err) { 
+  console.log('Peer Error: ' + err.type);
+});
+
+  
   
 function main() {
   const canvas = document.querySelector('#c');
@@ -173,7 +179,7 @@ let lastTime = Date.now();
 const tick = () => {
   const now = Date.now();
   const delta = now - lastTime;
-  lastTime = now;
+  
 
   // Now do something with delta, which contains the number of milliseconds since this function was last called.
   // Could use this to smooth out the framerate
@@ -190,7 +196,12 @@ const tick = () => {
   const jsonString = JSON.stringify(data);
   // Post to webrtc
   conn.send(jsonString);
-  
+
+  if (delta >= 1000){
+    console.log("Sent " + (1000 / frame_timeout_ms) + "rtc messages");
+    lastTime = now;
+  }
+
   // or setTimeout() for fixed FPS
   t_timeout = setTimeout(tick, frame_timeout_ms);
 };
