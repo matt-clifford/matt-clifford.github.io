@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">webrtc_sender v.0.1.1</h1>
+<h1 align="left">webrtc_sender v.0.1.2</h1>
 <p>This test derived from:</p>
 <p>  https://sensor-js.xyz/demo.html</p>
 <p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
@@ -74,6 +74,41 @@ var peer = new Peer({debug: 2});
 var conn = peer.connect('long_random_peer_id_for_orientation');
 
 
+let b_running = Boolean(true);
+let frame_timeout_ms = 50;  // 50ms = 20Hz, 10ms = 100Hz
+let t_timeout
+let lastTime = Date.now();
+
+const tick = () => {
+  const now = Date.now();
+  const delta = now - lastTime;
+  
+
+  // Now do something with delta, which contains the number of milliseconds since this function was last called.
+  // Could use this to smooth out the framerate
+  let counterElement = document.getElementById("timer_ticks")
+  let eventCount = parseInt(counterElement.innerHTML)
+  counterElement.innerHTML = eventCount + 1;
+
+  // get the current orientation
+  let x_axis_str = document.getElementById("Orientation_b").innerHTML;  
+  let y_axis_str = document.getElementById("Orientation_g").innerHTML;  
+  let z_axis_str = document.getElementById("Orientation_a").innerHTML; 
+  // Serialise as a JSON string
+  const data = { x: x_axis_str, y: y_axis_str, z: z_axis_str };
+  const jsonString = JSON.stringify(data);
+  // Post to webrtc
+  conn.send(jsonString);
+
+  if (delta >= 1000){
+    console.log("Sent " + (1000 / frame_timeout_ms) + "rtc messages");
+    lastTime = now;
+  }
+
+  // or setTimeout() for fixed FPS
+  t_timeout = setTimeout(tick, frame_timeout_ms);
+};
+	
 peer.on('error', function(err) { 
   console.log('Peer Error: ' + err.type);
 });
@@ -177,43 +212,6 @@ function render() {
     renderer.render(scene, camera);
     requestAnimationFrame(render);
   }
-
-
-
-let b_running = Boolean(true);
-let frame_timeout_ms = 50;  // 50ms = 20Hz, 10ms = 100Hz
-let t_timeout
-let lastTime = Date.now();
-
-const tick = () => {
-  const now = Date.now();
-  const delta = now - lastTime;
-  
-
-  // Now do something with delta, which contains the number of milliseconds since this function was last called.
-  // Could use this to smooth out the framerate
-  let counterElement = document.getElementById("timer_ticks")
-  let eventCount = parseInt(counterElement.innerHTML)
-  counterElement.innerHTML = eventCount + 1;
-
-  // get the current orientation
-  let x_axis_str = document.getElementById("Orientation_b").innerHTML;  
-  let y_axis_str = document.getElementById("Orientation_g").innerHTML;  
-  let z_axis_str = document.getElementById("Orientation_a").innerHTML; 
-  // Serialise as a JSON string
-  const data = { x: x_axis_str, y: y_axis_str, z: z_axis_str };
-  const jsonString = JSON.stringify(data);
-  // Post to webrtc
-  conn.send(jsonString);
-
-  if (delta >= 1000){
-    console.log("Sent " + (1000 / frame_timeout_ms) + "rtc messages");
-    lastTime = now;
-  }
-
-  // or setTimeout() for fixed FPS
-  t_timeout = setTimeout(tick, frame_timeout_ms);
-};
 
 function StopTimeout() {
   clearTimeout(t_timeout);
