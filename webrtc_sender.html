@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">webrtc_sender v.0.1.7</h1>
+<h1 align="left">webrtc_sender v.0.1.8</h1>
 <p>This test derived from:</p>
 <p>  https://sensor-js.xyz/demo.html</p>
 <p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
@@ -128,10 +128,10 @@ function initialize() {
 	    console.log('Peer: Received null id from peer open');
 	    // = lastPeerId;
 	} else {
-	    lastPeerId = ;
+	    lastPeerId = peer.id;
 	}
 
-	console.log('My Peer ID: ' + );
+	console.log('My Peer ID: ' + peer.id);
     });
     peer.on('connection', function (c) {
 	// Disallow incoming connections
