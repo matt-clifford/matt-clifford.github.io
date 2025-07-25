@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">webrtc_sender v.0.1.4</h1>
+<h1 align="left">webrtc_sender v.0.1.5</h1>
 <p>This test derived from:</p>
 <p>  https://sensor-js.xyz/demo.html</p>
 <p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
@@ -144,7 +144,7 @@ function initialize() {
 	console.log('Peer: Connection lost. Please reconnect');
 
 	// Workaround for peer.reconnect deleting previous id
-	peer.id = lastPeerId;
+	//peer.id = lastPeerId;
 	peer._lastServerId = lastPeerId;
 	peer.reconnect();
     });
@@ -374,10 +374,11 @@ window.addEventListener('userproximity', function(event) {
 */
   requestAnimationFrame(render);
 } // end main???
-
+console.log("Init Peer");
 initialize();
+console.log("Connect to remote listener");
 join();
-  
+console.log("Run animation");
 // Run the cube animation
 main();  
 
