@@ -2,7 +2,7 @@
 <html lang="en">
 <body>
 <main role="main" class="container">
-<h1 align="left">webrtc_viewer v.0.1.3</h1>
+<h1 align="left">webrtc_viewer v.0.1.4</h1>
 <p>This test derived from:</p>
 <p>  https://sensor-js.xyz/demo.html</p>
 <p>  https://medium.com/@chengdai/create-3d-animation-for-your-website-by-using-javascript-7619f8bbde9</p>
@@ -135,7 +135,7 @@ function ready() {
 	    //exclude z axis as it was excluded in the demo  
 	    cube.rotation.z = -z_axis_rad      
 	    
-	};
+	});
     });
     conn.on('close', function () {
 	console.log("Peer: Connection reset<br>Awaiting connection...");
